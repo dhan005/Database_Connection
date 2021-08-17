@@ -1,0 +1,54 @@
+import pandas as pd 
+import numpy as np 
+import os 
+import pyodbc 
+import smtplib
+from datetime import datetime 
+
+#create connection to database
+class db: 
+    DRIVER = 'DRIVER={SQL SERVER};'
+    SERVER = 'SERVER=<server name>;'
+    DATABASE = 'DATABASE=<database name>;'
+    TRUST = 'Trust_Connection=yes;'
+    
+    #make sure all tables are captured and display
+    def __init__(self): 
+        self.connection = pyodbc.connect(self.DRIVER+self.SERVER+self.DATABASE+self.TRUST)
+        self.cursor = self.connection.cursor()
+        self.cursor = self.cursor.tables(tableType='TABLE')
+        rows = self.cursor.fetchall()
+        print(rows)
+        
+    def execute(self, query): 
+        self.execute = self.cursor.execute(query)
+        return self.execute
+    
+#create call GET method for Open AR Items
+class AR_OpenItems(db): 
+    def get_openitems(self): 
+        query = '''
+        SELECT *
+          FROM [Database Name].[ETL].[Dim_FC_ar_OpenItem]
+          INNER JOIN ETL.Dim_FC_ar_CustomerMaster as CM ON 
+          CM.CUST_NUM = CustomerID 
+          WHERE Type in ('C', 'P', 'M') and Status = 'O' and CM.CUST_CTYP = '10' 
+          ORDER BY Transaction_Date DESC, Original_Dlr ASC 
+        '''
+        pd.set_option('display.max.columns',100)
+        df = pd.read_sql(query, self.connection)
+        return df
+    
+    def find_null(self): 
+        for n in df.columns: 
+            pct_missing = np.mean(df[n].isnull())
+            print('{}, {}'.format(n, round(pct_missing)))
+            
+    def aggregate_status(self): 
+        df = AR_OpenItems.get_openitems(self)
+        grouped = pd.crosstab(df['Status'], df['Type'])
+        return grouped
+        
+            
+aropenitems = AR_OpenItems()
+aropenitems.aggregate_status()
